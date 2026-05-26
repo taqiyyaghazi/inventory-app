@@ -1,0 +1,22 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Storage Box Lid / Accent -->
+    <path
+        android:fillColor="#FFD54F"
+        android:pathData="M24,32h60v10h-60z" />
+    <!-- Main Box Body -->
+    <path
+        android:fillColor="#FFA000"
+        android:pathData="M28,42h52v34c0,4 -3,7 -7,7h-38c-4,0 -7,-3 -7,-7z" />
+    <!-- Box handles / detail -->
+    <path
+        android:fillColor="#FF8F00"
+        android:pathData="M46,54h16c1.1,0 2,0.9 2,2v2c0,1.1 -0.9,2 -2,2h-16c-1.1,0 -2,-0.9 -2,-2v-2c0,-1.1 0.9,-2 2,-2z" />
+    <!-- Tiny item tag decoration -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M38,44h6v12h-6z" />
+</vector>

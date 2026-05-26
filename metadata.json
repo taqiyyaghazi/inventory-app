@@ -1,0 +1,6 @@
+{
+  "name": "Inventaris Pribadi",
+  "description": "Aplikasi pencatatan inventaris pribadi yang mudah digunakan untuk mengelola barang-barang Anda.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
