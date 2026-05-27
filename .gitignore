@@ -16,6 +16,8 @@
 local.properties
 .env
 debug.keystore
+
+# User requested ignores
 google-services.json
 .build-outputs/
 debug.keystore.base64
