@@ -24,22 +24,30 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.example.core.model.Category
 import com.example.core.model.InventoryItem
 import com.example.core.model.Location
 
 @Composable
 fun CategoriesScreen(
-    categories: List<String>,
+    categories: List<Category>,
     items: List<InventoryItem>,
     locations: List<Location>,
     onSelectCategory: (String) -> Unit,
     onAddLocation: (String) -> Unit,
     onEditLocation: (Location, String) -> Unit,
-    onDeleteLocation: (Location) -> Unit
+    onDeleteLocation: (Location) -> Unit,
+    onAddCategory: (String) -> Unit,
+    onEditCategory: (Category, String) -> Unit,
+    onDeleteCategory: (Category) -> Unit
 ) {
     var selectedSubTab by remember { mutableStateOf(0) } // 0: Kategori, 1: Lokasi Master
     var showAddLocationDialog by remember { mutableStateOf(false) }
+    var showAddCategoryDialog by remember { mutableStateOf(false) }
     var locationToEdit by remember { mutableStateOf<Location?>(null) }
+    var categoryToEdit by remember { mutableStateOf<Category?>(null) }
+    var locationToDelete by remember { mutableStateOf<Location?>(null) }
+    var categoryToDelete by remember { mutableStateOf<Category?>(null) }
 
     Column(
         modifier = Modifier
@@ -111,77 +119,118 @@ fun CategoriesScreen(
         }
 
         if (selectedSubTab == 0) {
-            Text(
-                text = "KLASIFIKASI KATEGORI",
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                    letterSpacing = 1.sp
-                ),
-                modifier = Modifier.padding(bottom = 14.dp)
-            )
-
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.weight(1f)
-            ) {
-                items(categories) { category ->
-                    val associatedCount = items.filter { it.category == category }.sumOf { it.quantity }
-                    val associatedValue = items.filter { it.category == category }.sumOf { it.value * it.quantity }
-                    val colors = getCategoryColors(category)
-
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .aspectRatio(1f)
-                            .clickable { onSelectCategory(category) },
-                        shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            Column(modifier = Modifier.fillMaxSize()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "KLASIFIKASI KATEGORI",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            letterSpacing = 1.sp
+                        )
+                    )
+                    
+                    Button(
+                        onClick = { showAddCategoryDialog = true },
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                     ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(16.dp),
-                            verticalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(44.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(colors.first.copy(alpha = 0.15f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = getCategoryIcon(category),
-                                    contentDescription = category,
-                                    tint = colors.first,
-                                    modifier = Modifier.size(22.dp)
-                                )
-                            }
+                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Tambah", fontSize = 12.sp)
+                    }
+                }
 
-                            Column {
-                                Text(
-                                    text = category,
-                                    style = MaterialTheme.typography.titleMedium.copy(
-                                        fontWeight = FontWeight.ExtraBold,
-                                        lineHeight = 20.sp
-                                    ),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = "$associatedCount Unit • ${formatRupiah(associatedValue)}",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
-                                        fontSize = 11.sp
-                                    ),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
+                if (categories.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("Belum ada kategori. Silakan tambahkan.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                } else {
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(1),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        items(categories, key = { it.id }) { category ->
+                            val associatedCount = items.filter { it.category.equals(category.name, ignoreCase = true) }.sumOf { it.quantity }
+                            val colors = getCategoryColors(category.name)
+                            
+                            Card(
+                                modifier = Modifier.fillMaxWidth().clickable { onSelectCategory(category.name) },
+                                shape = RoundedCornerShape(16.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(14.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(36.dp)
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .background(colors.first.copy(alpha = 0.15f)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = getCategoryIcon(category.name),
+                                                contentDescription = null,
+                                                tint = colors.first,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        Column {
+                                            Text(
+                                                text = category.name,
+                                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                                            )
+                                            Text(
+                                                text = "$associatedCount Barang",
+                                                style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            )
+                                        }
+                                    }
+                                    
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        IconButton(onClick = { categoryToEdit = category }) {
+                                            Icon(
+                                                imageVector = Icons.Default.Edit,
+                                                contentDescription = "Edit",
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+                                        IconButton(onClick = { categoryToDelete = category }) {
+                                            Icon(
+                                                imageVector = Icons.Default.Delete,
+                                                contentDescription = "Delete",
+                                                tint = MaterialTheme.colorScheme.error,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -231,7 +280,7 @@ fun CategoriesScreen(
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                         modifier = Modifier.weight(1f)
                     ) {
-                        items(locations) { location ->
+                        items(locations, key = { it.id }) { location ->
                             val count = items.count { it.location.equals(location.name, ignoreCase = true) }
                             
                             Card(
@@ -289,7 +338,7 @@ fun CategoriesScreen(
                                                 modifier = Modifier.size(20.dp)
                                             )
                                         }
-                                        IconButton(onClick = { onDeleteLocation(location) }) {
+                                        IconButton(onClick = { locationToDelete = location }) {
                                             Icon(
                                                 imageVector = Icons.Default.Delete,
                                                 contentDescription = "Delete",
@@ -398,5 +447,146 @@ fun CategoriesScreen(
                 }
             }
         }
+    }
+
+    if (showAddCategoryDialog) {
+        var inputName by remember { mutableStateOf("") }
+        Dialog(onDismissRequest = { showAddCategoryDialog = false }) {
+            Card(
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                modifier = Modifier.fillMaxWidth().padding(16.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        text = "Tambah Kategori",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                    )
+                    OutlinedTextField(
+                        value = inputName,
+                        onValueChange = { inputName = it },
+                        label = { Text("Nama Kategori") },
+                        placeholder = { Text("Misal: Elektronik") },
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        TextButton(onClick = { showAddCategoryDialog = false }) { Text("Batal") }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Button(
+                            onClick = {
+                                if (inputName.isNotBlank()) {
+                                    onAddCategory(inputName)
+                                    showAddCategoryDialog = false
+                                }
+                            },
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Text("Tambah")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    categoryToEdit?.let { cat ->
+        var inputName by remember { mutableStateOf(cat.name) }
+        Dialog(onDismissRequest = { categoryToEdit = null }) {
+            Card(
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                modifier = Modifier.fillMaxWidth().padding(16.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        text = "Edit Kategori",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                    )
+                    OutlinedTextField(
+                        value = inputName,
+                        onValueChange = { inputName = it },
+                        label = { Text("Nama Kategori") },
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        TextButton(onClick = { categoryToEdit = null }) { Text("Batal") }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Button(
+                            onClick = {
+                                if (inputName.isNotBlank()) {
+                                    onEditCategory(cat, inputName)
+                                    categoryToEdit = null
+                                }
+                            },
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Text("Simpan")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    categoryToDelete?.let { cat ->
+        AlertDialog(
+            onDismissRequest = { categoryToDelete = null },
+            title = { Text(text = "Hapus Kategori") },
+            text = { Text(text = "Apakah Anda yakin ingin menghapus kategori '${cat.name}'? Aksi ini tidak dapat dibatalkan.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onDeleteCategory(cat)
+                        categoryToDelete = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Hapus")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { categoryToDelete = null }) {
+                    Text("Batal")
+                }
+            }
+        )
+    }
+
+    locationToDelete?.let { loc ->
+        AlertDialog(
+            onDismissRequest = { locationToDelete = null },
+            title = { Text(text = "Hapus Lokasi") },
+            text = { Text(text = "Apakah Anda yakin ingin menghapus lokasi '${loc.name}'? Aksi ini tidak dapat dibatalkan.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onDeleteLocation(loc)
+                        locationToDelete = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Hapus")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { locationToDelete = null }) {
+                    Text("Batal")
+                }
+            }
+        )
     }
 }

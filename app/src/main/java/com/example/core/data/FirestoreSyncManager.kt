@@ -259,6 +259,7 @@ class FirestoreSyncManager(
             "location" to item.location,
             "value" to item.value,
             "notes" to item.notes,
+            "imageUrl" to (item.imageUrl ?: ""),
             "timestamp" to item.timestamp
         )
     }
@@ -272,6 +273,8 @@ class FirestoreSyncManager(
             val location = doc.getString("location") ?: "Tanpa Lokasi"
             val value = doc.getDouble("value") ?: 0.0
             val notes = doc.getString("notes") ?: ""
+            val imageUrlStr = doc.getString("imageUrl")
+            val imageUrl = if (imageUrlStr.isNullOrBlank()) null else imageUrlStr
             val timestamp = doc.getLong("timestamp") ?: System.currentTimeMillis()
 
             InventoryItem(
@@ -282,6 +285,7 @@ class FirestoreSyncManager(
                 location = location,
                 value = value,
                 notes = notes,
+                imageUrl = imageUrl,
                 timestamp = timestamp
             )
         } catch (e: Exception) {

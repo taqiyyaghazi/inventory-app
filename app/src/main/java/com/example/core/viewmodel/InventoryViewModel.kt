@@ -31,7 +31,7 @@ class InventoryViewModel(application: Application) : AndroidViewModel(applicatio
 
     init {
         val database = InventoryDatabase.getDatabase(application)
-        repository = InventoryRepository(database.dao(), database.locationDao())
+        repository = InventoryRepository(database.dao(), database.locationDao(), database.categoryDao())
         
         authManager = AuthManager(application)
         syncManager = FirestoreSyncManager(repository, application)
@@ -101,8 +101,12 @@ class InventoryViewModel(application: Application) : AndroidViewModel(applicatio
     private val _sortBy = MutableStateFlow(SortOption.DATE_DESC)
     val sortBy = _sortBy.asStateFlow()
 
-    // Expose default categories
-    val defaultCategories = listOf("Semua", "Elektronik", "Pakaian", "Buku & Dokumen", "Perabotan", "Alat Rumah Tangga", "Lainnya")
+    // Real categories directly from database
+    val categoriesState: StateFlow<List<com.example.core.model.Category>> = repository.allCategories.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.Eagerly,
+        initialValue = emptyList()
+    )
 
     // Core list with filters and search applied
     val itemsState: StateFlow<List<InventoryItem>> = combine(
@@ -174,22 +178,27 @@ class InventoryViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     // CRUD Actions
-    fun addItem(name: String, category: String, quantity: Int, location: String, value: Double, notes: String) {
+    fun addItem(name: String, category: String, quantity: Int, location: String, value: Double, notes: String, imageUrl: String? = null) {
         viewModelScope.launch {
-            val item = InventoryItem(
-                name = name,
-                category = category,
-                quantity = quantity,
-                location = location,
-                value = value,
-                notes = notes,
-                timestamp = System.currentTimeMillis()
-            )
-            repository.insertItem(item)
-            
-            val user = authManager.userState.value
-            if (user != null && !user.isMock) {
-                syncManager.pushItem(user.uid, item)
+            try {
+                val item = InventoryItem(
+                    name = name,
+                    category = category,
+                    quantity = quantity,
+                    location = location,
+                    value = value,
+                    notes = notes,
+                    imageUrl = imageUrl,
+                    timestamp = System.currentTimeMillis()
+                )
+                repository.insertItem(item)
+                
+                val user = authManager.userState.value
+                if (user != null && !user.isMock) {
+                    syncManager.pushItem(user.uid, item)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
     }
@@ -207,12 +216,16 @@ class InventoryViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun updateItem(item: InventoryItem) {
         viewModelScope.launch {
-            val updated = item.copy(timestamp = System.currentTimeMillis())
-            repository.updateItem(updated)
-            
-            val user = authManager.userState.value
-            if (user != null && !user.isMock) {
-                syncManager.pushItem(user.uid, updated)
+            try {
+                val updated = item.copy(timestamp = System.currentTimeMillis())
+                repository.updateItem(updated)
+                
+                val user = authManager.userState.value
+                if (user != null && !user.isMock) {
+                    syncManager.pushItem(user.uid, updated)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
     }
@@ -220,23 +233,31 @@ class InventoryViewModel(application: Application) : AndroidViewModel(applicatio
     fun updateItemQuantity(item: InventoryItem, newQuantity: Int) {
         if (newQuantity < 0) return
         viewModelScope.launch {
-            val updated = item.copy(quantity = newQuantity, timestamp = System.currentTimeMillis())
-            repository.updateItem(updated)
-            
-            val user = authManager.userState.value
-            if (user != null && !user.isMock) {
-                syncManager.pushItem(user.uid, updated)
+            try {
+                val updated = item.copy(quantity = newQuantity, timestamp = System.currentTimeMillis())
+                repository.updateItem(updated)
+                
+                val user = authManager.userState.value
+                if (user != null && !user.isMock) {
+                    syncManager.pushItem(user.uid, updated)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
     }
 
     fun removeItem(item: InventoryItem) {
         viewModelScope.launch {
-            repository.deleteItem(item)
-            
-            val user = authManager.userState.value
-            if (user != null && !user.isMock) {
-                syncManager.deleteItem(user.uid, item.uuid)
+            try {
+                repository.deleteItem(item)
+                
+                val user = authManager.userState.value
+                if (user != null && !user.isMock) {
+                    syncManager.deleteItem(user.uid, item.uuid)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
     }
@@ -279,11 +300,15 @@ class InventoryViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun deleteLocation(location: Location) {
         viewModelScope.launch {
-            repository.deleteLocation(location)
-            
-            val user = authManager.userState.value
-            if (user != null && !user.isMock) {
-                syncManager.deleteLocation(user.uid, location.uuid)
+            try {
+                repository.deleteLocation(location)
+                
+                val user = authManager.userState.value
+                if (user != null && !user.isMock) {
+                    syncManager.deleteLocation(user.uid, location.uuid)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
     }
@@ -294,6 +319,30 @@ class InventoryViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun refreshLocations() {
         // No-op, managed by Room Flow
+    }
+
+    fun addCategory(name: String) {
+        viewModelScope.launch {
+            val category = com.example.core.model.Category(name = name, timestamp = System.currentTimeMillis())
+            repository.insertCategory(category)
+        }
+    }
+
+    fun updateCategory(category: com.example.core.model.Category, newName: String) {
+        viewModelScope.launch {
+            val updated = category.copy(name = newName, timestamp = System.currentTimeMillis())
+            repository.updateCategory(updated)
+        }
+    }
+
+    fun deleteCategory(category: com.example.core.model.Category) {
+        viewModelScope.launch {
+            try {
+                repository.deleteCategory(category)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
     }
 }
 

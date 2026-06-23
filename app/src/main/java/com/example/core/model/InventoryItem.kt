@@ -13,5 +13,6 @@ data class InventoryItem(
     val location: String,
     val value: Double,
     val notes: String = "",
+    val imageUrl: String? = null,
     val timestamp: Long = System.currentTimeMillis()
 )

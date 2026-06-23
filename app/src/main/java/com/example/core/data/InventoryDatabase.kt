@@ -4,13 +4,15 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import com.example.core.model.Category
 import com.example.core.model.InventoryItem
 import com.example.core.model.Location
 
-@Database(entities = [InventoryItem::class, Location::class], version = 4, exportSchema = false)
+@Database(entities = [InventoryItem::class, Location::class, Category::class], version = 6, exportSchema = false)
 abstract class InventoryDatabase : RoomDatabase() {
     abstract fun dao(): InventoryDao
     abstract fun locationDao(): LocationDao
+    abstract fun categoryDao(): CategoryDao
 
     companion object {
         @Volatile

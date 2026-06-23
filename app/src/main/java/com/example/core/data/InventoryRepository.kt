@@ -1,15 +1,18 @@
 package com.example.core.data
 
+import com.example.core.model.Category
 import com.example.core.model.InventoryItem
 import com.example.core.model.Location
 import kotlinx.coroutines.flow.Flow
 
 class InventoryRepository(
     private val dao: InventoryDao,
-    private val locationDao: LocationDao
+    private val locationDao: LocationDao,
+    private val categoryDao: CategoryDao
 ) {
     val allItems: Flow<List<InventoryItem>> = dao.getAllItems()
     val allLocations: Flow<List<Location>> = locationDao.getAllLocations()
+    val allCategories: Flow<List<Category>> = categoryDao.getAllCategories()
 
     suspend fun insertItem(item: InventoryItem) {
         dao.insertItem(item)
@@ -53,5 +56,21 @@ class InventoryRepository(
 
     suspend fun deleteLocation(location: Location) {
         locationDao.deleteLocation(location)
+    }
+
+    suspend fun getAllCategoriesDirectly(): List<Category> {
+        return categoryDao.getAllCategoriesDirectly()
+    }
+
+    suspend fun insertCategory(category: Category) {
+        categoryDao.insertCategory(category)
+    }
+
+    suspend fun updateCategory(category: Category) {
+        categoryDao.updateCategory(category)
+    }
+
+    suspend fun deleteCategory(category: Category) {
+        categoryDao.deleteCategory(category)
     }
 }

@@ -1,6 +1,10 @@
-package com.example.core.ui
+package com.example.features.home
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -14,12 +18,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import coil.compose.AsyncImage
 import com.example.core.model.InventoryItem
 import com.example.core.model.Location
 import com.example.core.viewmodel.SortOption
@@ -98,15 +105,43 @@ fun ItemFormDialog(
     itemToEdit: InventoryItem? = null,
     categories: List<String>,
     locations: List<Location>,
-    onSubmit: (String, String, Int, String, Double, String) -> Unit,
+    onSubmit: (String, String, Int, String, Double, String, String?) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val context = LocalContext.current
     var name by remember { mutableStateOf(itemToEdit?.name ?: "") }
     var selectedCategory by remember { mutableStateOf(itemToEdit?.category ?: categories.firstOrNull() ?: "Lainnya") }
     var quantityString by remember { mutableStateOf(itemToEdit?.quantity?.toString() ?: "1") }
     var location by remember { mutableStateOf(itemToEdit?.location ?: locations.firstOrNull()?.name ?: "Tanpa Lokasi") }
     var valueString by remember { mutableStateOf(itemToEdit?.value?.toInt()?.toString() ?: "") }
     var notes by remember { mutableStateOf(itemToEdit?.notes ?: "") }
+    var imageUrl by remember { mutableStateOf(itemToEdit?.imageUrl) }
+    
+    var currentPhotoUri by remember { mutableStateOf<android.net.Uri?>(null) }
+    
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture(),
+        onResult = { success ->
+            if (success) {
+                imageUrl = currentPhotoUri?.toString()
+            }
+        }
+    )
+    
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+        onResult = { uri ->
+            if (uri != null) {
+                // Copy the image from gallery to app's internal storage for persistence
+                val copiedUri = context.copyUriToInternalStorage(uri)
+                if (copiedUri != null) {
+                    imageUrl = copiedUri.toString()
+                } else {
+                    imageUrl = uri.toString() // Fallback
+                }
+            }
+        }
+    )
     
     var showCategoryDropdown by remember { mutableStateOf(false) }
     var validationError by remember { mutableStateOf("") }
@@ -119,13 +154,21 @@ fun ItemFormDialog(
         }
     }
 
-    Dialog(onDismissRequest = onDismiss) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = androidx.compose.ui.window.DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false
+        )
+    ) {
         Card(
             shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 16.dp)
+                .padding(horizontal = 24.dp, vertical = 24.dp)
+                .systemBarsPadding()
+                .imePadding()
         ) {
             LazyColumn(
                 modifier = Modifier
@@ -273,6 +316,73 @@ fun ItemFormDialog(
                     )
                 }
 
+                item {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = "Foto Inventaris", 
+                            style = MaterialTheme.typography.labelMedium,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                        
+                        if (imageUrl != null) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(180.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                            ) {
+                                AsyncImage(
+                                    model = imageUrl,
+                                    contentDescription = "Foto $name",
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                                IconButton(
+                                    onClick = { imageUrl = null },
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .padding(8.dp)
+                                        .background(Color.Black.copy(alpha = 0.5f), shape = RoundedCornerShape(50))
+                                        .size(32.dp)
+                                ) {
+                                    Icon(Icons.Default.Clear, contentDescription = "Hapus foto", tint = Color.White)
+                                }
+                            }
+                        } else {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                OutlinedButton(
+                                    onClick = {
+                                        val file = context.createImageFile()
+                                        val uri = context.getUriForFile(file)
+                                        currentPhotoUri = uri
+                                        cameraLauncher.launch(uri)
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Icon(imageVector = Icons.Default.PhotoCamera, contentDescription = "Kamera")
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Kamera")
+                                }
+                                
+                                OutlinedButton(
+                                    onClick = { galleryLauncher.launch(androidx.activity.result.PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Icon(imageVector = Icons.Default.PhotoLibrary, contentDescription = "Galeri")
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Galeri")
+                                }
+                            }
+                        }
+                    }
+                }
+
                 if (validationError.isNotEmpty()) {
                     item {
                         Text(
@@ -312,7 +422,7 @@ fun ItemFormDialog(
                                 val valDouble = valueString.toDoubleOrNull() ?: 0.0
                                 val locStr = if (location.isBlank()) "Tanpa Lokasi" else location
                                 
-                                onSubmit(name, selectedCategory, qty, locStr, valDouble, notes)
+                                onSubmit(name, selectedCategory, qty, locStr, valDouble, notes, imageUrl)
                                 onDismiss()
                             },
                             shape = RoundedCornerShape(12.dp),
@@ -376,6 +486,18 @@ fun ItemDetailsDialog(
 
                 // Item Name Display
                 Column {
+                    if (item.imageUrl != null) {
+                        AsyncImage(
+                            model = item.imageUrl,
+                            contentDescription = "Foto Barang",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(200.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .padding(bottom = 12.dp)
+                        )
+                    }
                     Text(
                         text = item.name,
                         style = MaterialTheme.typography.headlineSmall.copy(

@@ -23,7 +23,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.DashboardTab
+import com.example.features.dashboard.DashboardTab
 import com.example.core.model.InventoryItem
 import com.example.core.viewmodel.SortOption
 import com.example.features.manage.getCategoryColors
